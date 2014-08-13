@@ -10,7 +10,8 @@ from MySQLdb import connect
 cgitb.enable(logdir="/Users/dkmita/www/cgi-bin/cgi.log")
 form = cgi.FieldStorage()
 
-conn = connect(host="localhost",user="root",passwd="Lamecat1",db="sentience")
+mysql_pwd = os.environ['MYSQL_PWD']
+conn = connect(host="localhost",user="root",passwd=mysql_pwd,db="sentience")
 cursor = conn.cursor()
 conn.autocommit(True)
 competitions = []
@@ -83,7 +84,8 @@ print """
 </head>
 <body>
 """
-facebookLogin.facebookLogin()
+apple_key = os.environ['APPLE_KEY']
+print facebookLogin.facebookLoginHtml % locals()
 if upload_message:
     print "<pre>",upload_message,"</pre>"
 print """ <h1>The Dompetition</h1>

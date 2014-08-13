@@ -1,5 +1,4 @@
-def facebookLogin():
-    print """
+facebookLoginHtml = """
         <script>
           // This is called with the results from from FB.getLoginStatus().
           function statusChangeCallback(response) {
@@ -35,7 +34,7 @@ def facebookLogin():
 
           window.fbAsyncInit = function() {
           FB.init({
-            appId      : '1448151285450756',
+            appId      : '%(apple_key)s',
             cookie     : true,  // enable cookies to allow the server to access 
                                 // the session
             xfbml      : true,  // parse social plugins on this page
@@ -77,6 +76,7 @@ def facebookLogin():
               console.log('Successful login for: ' + response.name);
               document.getElementById('status').innerHTML =
                 'Thanks for logging in, ' + response.name + '!';
+              debugger;
             });
           }
         </script>
