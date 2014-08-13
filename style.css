@@ -1,0 +1,12 @@
+
+.example {
+    border: 1px solid #C0C0C0;
+    border-collapse: collapse;
+    margin-left: 20px;
+}
+
+.example-click {
+    font-style: italic;
+    text-decoration: underline;
+}
+
