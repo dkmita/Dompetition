@@ -2,8 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 # enable debugging
-import os, sys, cgi, cgitb, facebook
-import Cookie
+import os, sys, cgi, cgitb, facebook, Cookie
 import facebookLogin
 from datetime import datetime
 from subprocess import Popen, PIPE
@@ -11,7 +10,8 @@ from MySQLdb import connect
 cgitb.enable(logdir="/Users/dkmita/www/cgi-bin/cgi.log")
 form = cgi.FieldStorage()
 
-conn = connect(host="localhost",user="root",passwd="Lamecat1",db="sentience")
+mysql_pwd = os.environ['MYSQL_PWD']
+conn = connect(host="localhost",user="root",passwd=mysql_pwd,db="sentience")
 cursor = conn.cursor()
 conn.autocommit(True)
 competitions = []
@@ -29,6 +29,7 @@ for name, id in cursor.fetchall():
 # A nested FieldStorage instance holds the file
 fileitem = None
 upload_message = ""
+user_id=1
 if "file" in form:
     fileitem = form["file"]
     
@@ -48,7 +49,7 @@ if "file" in form:
         fn_with_upload_time = fn_without_ending + upload_time_string 
         full_fn = fn_with_upload_time + fn_ending
 
-        open('/var/www/uploads/' + full_fn, 'wb').write(fileitem.file.read())
+        open('/var/www/html/uploads/' + full_fn, 'wb').write(fileitem.file.read())
         
         command = ["python", "/var/www/code/fileChecker.py", fn_with_upload_time]
         process = Popen( command, stdout=PIPE, stderr=PIPE)
@@ -67,8 +68,12 @@ if "file" in form:
             if len(outputlines) > 1:
                 upload_message += "<br />" + outputlines[1]
         else:
-            os.remove("/var/www/uploads/" + full_fn)
-            os.remove("/var/www/uploads/" + full_fn + "c")
+            py_path = "/var/www/html/uploads/" + full_fn
+            if os.path.exists(py_path):
+                os.remove(py_path)
+            pyc_path = py_path + "c"
+            if os.path.exists(pyc_path):
+                os.remove(pyc_path)
             upload_message = stdout + stderr 
              
 
@@ -80,11 +85,35 @@ print """
 </head>
 <body>
 """
-facebookLogin.facebookLogin()
-user = facebook.get_user_from_cookie(cookies, '1448151285450756', 'a71e6b82bb35f955956255effdb40b1b')
-if user:
-    graph = facebook.GraphAPI(user["access_token"])
-    profile = graph.get_object("me")
+apple_key = os.environ['APPLE_KEY']
+secret_key = os.environ['SECRET_KEY']
+user_name = None
+if "HTTP_COOKIE" in os.environ:
+    fb_cookie_str = os.environ["HTTP_COOKIE"] 
+    simple_cookie = Cookie.SimpleCookie()
+    simple_cookie.load(fb_cookie_str)
+    
+    fb_cookie = facebook.get_user_from_cookie(simple_cookie,apple_key,secret_key)
+    if fb_cookie:
+        graph = facebook.GraphAPI(fb_cookie["access_token"])
+        profile = graph.get_object("me")
+        first_name = profile["first_name"]
+        last_name = profile["last_name"]
+        user_name = first_name[0].lower()+last_name.lower() 
+        email = profile["email"]
+        print "Welcome, ", first_name, last_name, "(" + user_name + ")"
+        cursor.execute("select id from user where username='%(user_name)s'" % locals())
+        if not cursor.rowcount:
+            cursor.execute("insert into user (user_id,username,firstname,lastname,email) values \
+                             (null,'%(user_name)s','%(first_name)s','%(last_name)s','%(email)s'); " % locals() )
+            cursor.execute("select id from user where username='%(user_name)s'" % locals())
+            user_id, = cursor.fetchone()
+        else:
+            user_id, = cursor.fetchone()
+            cursor.execute("update user set firstname='%(first_name)s', lastname='%(last_name)s', \
+                             email='%(email)s' where id=%(user_id)s; " % locals() )
+    else:
+        print facebookLogin.facebookLoginHtml % locals()
 if upload_message:
     print "<pre>",upload_message,"</pre>"
 print """ <h1>The Dompetition</h1>
@@ -94,13 +123,13 @@ Upload your code: &nbsp&nbsp&nbsp&nbsp<span class=example-click>show example</sp
 class TheRock():
 
     def __init__(self):
-        // initialize your competitor
+        # initialize your competitor
         pass
 
     def process_and_decide(self, state):
-        opponents_move = stats.get_opponents_last_guess()
-        // figure out what you want to do and then
-        // return a (move, comment) tuple
+        opponents_move = state.get_opponents_last_guess()
+        # figure out what you want to do and then
+        # return a (move, comment) tuple
         return ("R", "Can you smell what The Rock is cookin'?")
 </pre></td></tr></table>
 <script type="text/javascript">
@@ -112,16 +141,9 @@ class TheRock():
 <form action="/cgi-bin/index.py" method="POST" enctype="multipart/form-data">
 <label for="file">Filename:</label>
 <input type="file" name="file" id="file"><br />
-Username: <select name=username>"""
-for name, id in usernames:
-    print "<option value=%(id)s>%(name)s</option>" % locals()
-print """</select>
-Competition: <select name=competition>"""
-for name, id in competitions:
-    print "<option value=%(id)s>%(name)s</option>" % locals()
-print """</select>
+<input type="hidden" name="username" value="%(user_id)s" /> 
 <input type="submit" name="submit" value="Submit"><br>
-</form>"""
+</form>""" % locals()
 print "<br />", "="*80, "<br />"
 
 cursor.execute("""
@@ -132,7 +154,8 @@ select
     cr.upload_time,
     cn.filename,
     cn.classname,
-    u.username
+    u.username,
+    u.id
 from competitor cr
 join user u
     on cr.user_id = u.id
@@ -150,11 +173,11 @@ on cr.user_id = latest.user_id
 
 competitor_map = {}
 for cr_id, cr_filename, cr_classname, cr_upload_time, cn_filename, cn_classname, \
-    cr_creator in cursor.fetchall():
+    cr_creator, u_id in cursor.fetchall():
 
     upload_string = cr_upload_time.strftime("%Y%m%d%H%M%S")
     competitor_map[cr_id] = (cr_filename, cr_classname, upload_string, \
-        cn_filename, cn_classname, cr_creator)
+        cn_filename, cn_classname, cr_creator, u_id)
 
 # Get competitor details
 cr1_id = int(form.getvalue("comp1")) if form.getvalue("comp1") else None
@@ -163,11 +186,12 @@ cr2_id = int(form.getvalue("comp2")) if form.getvalue("comp2") else None
 print """<form><table><tr><td>
             <table border=1><tr><th></th><th>Competitor</th><th>Creator</th></tr>"""
 for id in sorted(competitor_map.keys()):
-    fn, classname, upload_time, cnfn, cncn, username = competitor_map[id]
+    fn, classname, upload_time, cnfn, cncn, username,u_id = competitor_map[id]
+    rowclass = "" if u_id != user_id else "class='green'"
     checked = ""
     if id == cr1_id:
         checked = "checked"
-    print """<tr>
+    print """<tr %(rowclass)s>
         <td><input type=radio name=comp1 value=%(id)s %(checked)s></td>
         <td>%(classname)s</td>
         <td>%(username)s</td>
@@ -175,7 +199,7 @@ for id in sorted(competitor_map.keys()):
 print "</table></td>"
 print "<td><table border=1><tr><th>Creator</th><th>Competitor</th><th></th></tr>"
 for id in sorted(competitor_map.keys()):
-    fn, classname, upload_time, cnfn, cncn, username = competitor_map[id]
+    fn, classname, upload_time, cnfn, cncn, username, u_id = competitor_map[id]
     checked = ""
     if id == cr2_id:
         checked = "checked"
