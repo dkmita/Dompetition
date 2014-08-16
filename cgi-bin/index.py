@@ -95,23 +95,36 @@ if "HTTP_COOKIE" in os.environ:
    
     fb_cookie = facebook.get_user_from_cookie(simple_cookie,apple_key,secret_key)
     if fb_cookie:
-        graph = facebook.GraphAPI(fb_cookie["access_token"])
-        profile = graph.get_object("me")
-        first_name = profile["first_name"]
-        last_name = profile["last_name"]
-        user_name = first_name[0].lower()+last_name.lower() 
-        email = profile["email"]
-        print "Welcome, ", first_name, last_name, "(" + user_name + ")"
-        cursor.execute("select id from user where username='%(user_name)s'" % locals())
-        if not cursor.rowcount:
-            cursor.execute("insert into user (user_id,username,firstname,lastname,email) values \
-                             (null,'%(user_name)s','%(first_name)s','%(last_name)s','%(email)s'); " % locals() )
-            cursor.execute("select id from user where username='%(user_name)s'" % locals())
-            user_id, = cursor.fetchone()
+        access_token = fb_cookie["access_token"]
+        cursor.execute("""SELECT u.id, u.username, u.firstname, u.lastname 
+                          FROM user u
+                          JOIN cookie c
+                            on u.id=c.id
+                          WHERE 
+                            c.token='%(access_token)s' """ % locals() )
+        if cursor.rowcount:
+            user_id, user_name, first_name, last_name = cursor.fetchone()
+            print "got cached access_token data"
         else:
-            user_id, = cursor.fetchone()
-            cursor.execute("update user set firstname='%(first_name)s', lastname='%(last_name)s', \
-                             email='%(email)s' where id=%(user_id)s; " % locals() )
+            print "new acces_token data" 
+            graph = facebook.GraphAPI(access_token)
+            profile = graph.get_object("me")
+            first_name = profile["first_name"]
+            last_name = profile["last_name"]
+            user_name = first_name[0].lower()+last_name.lower() 
+            email = profile["email"]
+            print "Welcome, ", first_name, last_name, "(" + user_name + ")"
+            cursor.execute("select id from user where username='%(user_name)s'" % locals())
+            if not cursor.rowcount:
+                cursor.execute("insert into user (user_id,username,firstname,lastname,email) values \
+                                 (null,'%(user_name)s','%(first_name)s','%(last_name)s','%(email)s'); " % locals() )
+                cursor.execute("select id from user where username='%(user_name)s'" % locals())
+                user_id, = cursor.fetchone()
+            else:
+                user_id, = cursor.fetchone()
+                cursor.execute("update user set firstname='%(first_name)s', lastname='%(last_name)s', \
+                                 email='%(email)s' where id=%(user_id)s; " % locals() )
+            cursor.execute("insert into cookie (token, id) values ('%(access_token)s',%(user_id)s )" % locals() ) 
     else:
         print facebookLogin.facebookLoginHtml % locals()
 else:
