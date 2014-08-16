@@ -68,8 +68,10 @@ class Rps(Competition):
                         self.competitor1_comments[round], self.competitor1_wins_list[round],
                         self.competitor1_guesses[round], self.competitor2_guesses[round],
                         self.competitor2_wins_list[round], self.competitor2_comments[round])
-        display = "<span class=header><span class=score>Competitor #1: " + str(self.competitor1_total_wins) \
-                  + "  Competitor #2: " + str(self.competitor2_total_wins) + "</span>\n\n" + display
+        display = "<span class=header><span class=score>" + \
+                  self.competitor1.__class__.__name__ + ": " + str(self.competitor1_total_wins) + "  " + \
+                  self.competitor2.__class__.__name__ + ": " + str(self.competitor2_total_wins) + \
+                  "</span>\n\n" + display
         return display
 
     def is_move_valid(self, move):
