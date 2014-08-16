@@ -14,66 +14,7 @@ mysql_pwd = os.environ['MYSQL_PWD']
 conn = connect(host="localhost",user="root",passwd=mysql_pwd,db="sentience")
 cursor = conn.cursor()
 conn.autocommit(True)
-competitions = []
-cursor.execute("""select name, id from competition""")
-for name, id in cursor.fetchall():
-    competitions += [(name, id)]
 
-usernames = []
-cursor.execute("""select username, id from user where username!='sentience'""")
-for name, id in cursor.fetchall():
-    usernames += [(name, id)]
-
-
-
-# A nested FieldStorage instance holds the file
-fileitem = None
-upload_message = ""
-if "file" in form:
-    fileitem = form["file"]
-    
-    user = form.getvalue("username")
-    competition = form.getvalue("competition")
-
-    #strip leading path from file name to avoid directory traversal attacks
-    fn = os.path.basename(fileitem.filename)
-    if len(fn)<=4 or (fn[-3:] != '.py' and fn[-4:] != '.pyc'):
-        upload_message = 'The file needs to be .py or .pyc type'
-    else:
-        fn_without_ending = fn[:fn.index('.')]
-        fn_ending = fn[fn.index('.'):]
-
-        now_datetime = datetime.now()
-        upload_time_string = now_datetime.strftime("%Y%m%d%H%M%S")
-        fn_with_upload_time = fn_without_ending + upload_time_string 
-        full_fn = fn_with_upload_time + fn_ending
-
-        open('/var/www/html/uploads/' + full_fn, 'wb').write(fileitem.file.read())
-        
-        command = ["python", "/var/www/code/fileChecker.py", fn_with_upload_time]
-        process = Popen( command, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
-
-        if process.returncode == 0:
-            
-            upload_message = 'The file "' + fn + '" was uploaded with class(es): '
-            outputlines = stdout.splitlines()
-            for class_name in outputlines[0].split(' '):
-                mysql_datetime_str = now_datetime.strftime("%Y-%m-%d %H:%M%S")
-                cursor.execute("""insert into competitor values (null,%(user)s,
-                                %(competition)s,'%(fn_without_ending)s',
-                                '%(class_name)s','%(mysql_datetime_str)s')""" %locals())
-                upload_message += class_name
-            if len(outputlines) > 1:
-                upload_message += "<br />" + outputlines[1]
-        else:
-            py_path = "/var/www/html/uploads/" + full_fn
-            if os.path.exists(py_path):
-                os.remove(py_path)
-            pyc_path = py_path + "c"
-            if os.path.exists(pyc_path):
-                os.remove(pyc_path)
-            upload_message = stdout + stderr 
              
 
 print """
@@ -84,15 +25,22 @@ print """
 </head>
 <body>
 """
-apple_key = os.environ['APPLE_KEY']
-secret_key = os.environ['SECRET_KEY']
 user_name = None
 user_id=0
-if "HTTP_COOKIE" in os.environ:
+if "user" in form:
+    user_id = form.getvalue("user")
+    cursor.execute("select username from user where id=%(user_id)s" % locals())
+    if cursor.rowcount:
+        user_name, = cursor.fetchone()
+    else:
+        user_name = "unknown"
+elif "HTTP_COOKIE" in os.environ:
     fb_cookie_str = os.environ["HTTP_COOKIE"] 
     simple_cookie = Cookie.SimpleCookie()
     simple_cookie.load(fb_cookie_str)
    
+    apple_key = os.environ['APPLE_KEY']
+    secret_key = os.environ['SECRET_KEY']
     fb_cookie = facebook.get_user_from_cookie(simple_cookie,apple_key,secret_key)
     if fb_cookie:
         access_token = fb_cookie["access_token"]
@@ -129,6 +77,53 @@ if "HTTP_COOKIE" in os.environ:
         print facebookLogin.facebookLoginHtml % locals()
 else:
     print facebookLogin.facebookLoginHtml % locals()
+
+# A nested FieldStorage instance holds the file
+fileitem = None
+upload_message = ""
+if "file" in form:
+    fileitem = form["file"]
+    competition = form.getvalue("competition")
+    #strip leading path from file name to avoid directory traversal attacks
+    fn = os.path.basename(fileitem.filename)
+    if len(fn)<=4 or (fn[-3:] != '.py' and fn[-4:] != '.pyc'):
+        upload_message = 'The file needs to be .py or .pyc type'
+    else:
+        fn_without_ending = fn[:fn.index('.')]
+        fn_ending = fn[fn.index('.'):]
+
+        now_datetime = datetime.now()
+        upload_time_string = now_datetime.strftime("%Y%m%d%H%M%S")
+        fn_with_upload_time = fn_without_ending + upload_time_string 
+        full_fn = fn_with_upload_time + fn_ending
+
+        open('/var/www/html/uploads/' + full_fn, 'wb').write(fileitem.file.read())
+        
+        command = ["python", "/var/www/code/fileChecker.py", fn_with_upload_time]
+        process = Popen( command, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        
+        if process.returncode == 0:
+            
+            upload_message = 'The file "' + fn + '" was uploaded with class(es): '
+            outputlines = stdout.splitlines()
+            for class_name in outputlines[0].split(' '):
+                mysql_datetime_str = now_datetime.strftime("%Y-%m-%d %H:%M%S")
+                cursor.execute("""insert into competitor values (null,%(user_id)s,
+                                %(competition)s,'%(fn_without_ending)s',
+                                '%(class_name)s','%(mysql_datetime_str)s')""" %locals())
+                upload_message += class_name + " "
+            if len(outputlines) > 1:
+                upload_message += "<br />" + outputlines[1]
+        else:
+            py_path = "/var/www/html/uploads/" + full_fn
+            if os.path.exists(py_path):
+                os.remove(py_path)
+            pyc_path = py_path + "c"
+            if os.path.exists(pyc_path):
+                os.remove(pyc_path)
+            upload_message = stdout + stderr 
+
 if upload_message:
     print "<pre>",upload_message,"</pre>"
 print """ <h1>The Dompetition</h1>
@@ -156,7 +151,8 @@ class TheRock():
 <form action="/cgi-bin/index.py" method="POST" enctype="multipart/form-data">
 <label for="file">Filename:</label>
 <input type="file" name="file" id="file"><br />
-<input type="hidden" name="username" value="%(user_id)s" /> 
+<input type="hidden" name="user" value="%(user_id)s" /> 
+<input type="hidden" name="competition" value=1 /> 
 <input id=uploadsubmit type="submit" name="submit" value="Submit"><br>
 </form>""" % locals()
 if user_name is None:
@@ -206,7 +202,7 @@ print """<form><table><tr><td>
             <table border=1><tr><th></th><th>Competitor</th><th>Creator</th></tr>"""
 for id in sorted(competitor_map.keys()):
     fn, classname, upload_time, cnfn, cncn, username,u_id = competitor_map[id]
-    rowclass = "" if u_id != user_id else "class='green'"
+    rowclass = "" if int(u_id) != int(user_id) else "class='green'"
     checked = ""
     if id == cr1_id:
         checked = "checked"
