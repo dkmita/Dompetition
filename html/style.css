@@ -14,3 +14,12 @@
     background-color: #EBFFEB;
 }
 
+.header {
+    font-weight: bold;
+    font-color: #003300;
+}
+
+.score {
+    font-size: 1.5em;
+}
+

@@ -29,7 +29,6 @@ for name, id in cursor.fetchall():
 # A nested FieldStorage instance holds the file
 fileitem = None
 upload_message = ""
-user_id=1
 if "file" in form:
     fileitem = form["file"]
     
@@ -88,11 +87,12 @@ print """
 apple_key = os.environ['APPLE_KEY']
 secret_key = os.environ['SECRET_KEY']
 user_name = None
+user_id=0
 if "HTTP_COOKIE" in os.environ:
     fb_cookie_str = os.environ["HTTP_COOKIE"] 
     simple_cookie = Cookie.SimpleCookie()
     simple_cookie.load(fb_cookie_str)
-    
+   
     fb_cookie = facebook.get_user_from_cookie(simple_cookie,apple_key,secret_key)
     if fb_cookie:
         graph = facebook.GraphAPI(fb_cookie["access_token"])
@@ -114,6 +114,8 @@ if "HTTP_COOKIE" in os.environ:
                              email='%(email)s' where id=%(user_id)s; " % locals() )
     else:
         print facebookLogin.facebookLoginHtml % locals()
+else:
+    print facebookLogin.facebookLoginHtml % locals()
 if upload_message:
     print "<pre>",upload_message,"</pre>"
 print """ <h1>The Dompetition</h1>
@@ -142,8 +144,11 @@ class TheRock():
 <label for="file">Filename:</label>
 <input type="file" name="file" id="file"><br />
 <input type="hidden" name="username" value="%(user_id)s" /> 
-<input type="submit" name="submit" value="Submit"><br>
+<input id=uploadsubmit type="submit" name="submit" value="Submit"><br>
 </form>""" % locals()
+if user_name is None:
+    print "<script>$('#uploadsubmit').prop('disabled', true);</script>"
+
 print "<br />", "="*80, "<br />"
 
 cursor.execute("""
@@ -182,6 +187,7 @@ for cr_id, cr_filename, cr_classname, cr_upload_time, cn_filename, cn_classname,
 # Get competitor details
 cr1_id = int(form.getvalue("comp1")) if form.getvalue("comp1") else None
 cr2_id = int(form.getvalue("comp2")) if form.getvalue("comp2") else None
+num_rounds = form.getvalue("numrounds","100")
 
 print """<form><table><tr><td>
             <table border=1><tr><th></th><th>Competitor</th><th>Creator</th></tr>"""
@@ -210,6 +216,11 @@ for id in sorted(competitor_map.keys()):
     </tr>""" % locals()
 print "</table>"
 print "</td></tr></table>"
+print "Num Rounds:<select>"
+for rounds in ["100","250","1000"]:
+    select_str = "selected" if rounds == num_rounds else ""
+    print "  <option value=%(rounds)s %(select_str)s>%(rounds)s</option>" % locals()
+print "</select>"
 print "<input type=submit value='Compete'>"
 print "</form>"
 
@@ -217,8 +228,8 @@ if not cr1_id or not cr2_id:
     print "</body></html>"
     sys.exit()
 
-cr1_filename, cr1_classname, cr1_time, cn1_filename, cn1_classname, user = competitor_map[cr1_id]
-cr2_filename, cr2_classname, cr2_time, cn2_filename, cn2_classname, user = competitor_map[cr2_id]
+cr1_filename, cr1_classname, cr1_time, cn1_filename, cn1_classname, user, u_id = competitor_map[cr1_id]
+cr2_filename, cr2_classname, cr2_time, cn2_filename, cn2_classname, user, u_id = competitor_map[cr2_id]
 cr1_filename = cr1_filename + cr1_time
 cr2_filename = cr2_filename + cr2_time
 
@@ -227,12 +238,12 @@ if cn1_filename != cn2_filename or cn1_classname != cn2_classname:
     print "</body></html>"
     exit()
     
-arena_filename = "/var/www/code/arena.py"
+arena = "/var/www/code/arena.py"
 print "<br />", "="*80, "<br />"
 print "<pre>"
 
-command = ["python",arena_filename,cn1_filename, cn1_classname, cr1_filename,cr1_classname, \
-          cr2_filename, cr2_classname]
+command = ["python",arena, cn1_filename, cn1_classname, cr1_filename,cr1_classname, \
+          cr2_filename, cr2_classname, num_rounds]
 #print ' '.join(command), "<br />"
 process = Popen( command, stdout=PIPE, stderr=PIPE)
 stdout, stderr = process.communicate()

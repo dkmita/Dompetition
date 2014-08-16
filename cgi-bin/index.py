@@ -187,6 +187,7 @@ for cr_id, cr_filename, cr_classname, cr_upload_time, cn_filename, cn_classname,
 # Get competitor details
 cr1_id = int(form.getvalue("comp1")) if form.getvalue("comp1") else None
 cr2_id = int(form.getvalue("comp2")) if form.getvalue("comp2") else None
+num_rounds = form.getvalue("numrounds","100")
 
 print """<form><table><tr><td>
             <table border=1><tr><th></th><th>Competitor</th><th>Creator</th></tr>"""
@@ -215,6 +216,11 @@ for id in sorted(competitor_map.keys()):
     </tr>""" % locals()
 print "</table>"
 print "</td></tr></table>"
+print "Num Rounds:<select name=numrounds>"
+for rounds in ["100","250","1000"]:
+    select_str = "selected" if rounds == num_rounds else ""
+    print "  <option value=%(rounds)s %(select_str)s>%(rounds)s</option>" % locals()
+print "</select>"
 print "<input type=submit value='Compete'>"
 print "</form>"
 
@@ -232,12 +238,12 @@ if cn1_filename != cn2_filename or cn1_classname != cn2_classname:
     print "</body></html>"
     exit()
     
-arena_filename = "/var/www/code/arena.py"
+arena = "/var/www/code/arena.py"
 print "<br />", "="*80, "<br />"
 print "<pre>"
 
-command = ["python",arena_filename,cn1_filename, cn1_classname, cr1_filename,cr1_classname, \
-          cr2_filename, cr2_classname]
+command = ["python",arena, cn1_filename, cn1_classname, cr1_filename,cr1_classname, \
+          cr2_filename, cr2_classname, num_rounds]
 #print ' '.join(command), "<br />"
 process = Popen( command, stdout=PIPE, stderr=PIPE)
 stdout, stderr = process.communicate()

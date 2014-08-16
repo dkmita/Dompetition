@@ -3,8 +3,10 @@ from competition import Competition
 class Rps(Competition):
 
     WINNING_PAIRS = {"R":"S","P":"R","S":"P"}
-    competitor1_wins = 0
-    competitor2_wins = 0
+    competitor1_total_wins = 0
+    competitor2_total_wins = 0
+    competitor1_wins = []
+    competitor2_wins = []
     competitor1_wins_list = []
     competitor2_wins_list = []
     competitor1_guesses = []
@@ -34,16 +36,18 @@ class Rps(Competition):
         self.competitor2_comments += [comment2 if len(comment2) <= 50 else comment2[:50]]
         if move1 != move2:
             if move2 == self.WINNING_PAIRS[move1]:
-                self.competitor1_wins += 1
+                self.competitor1_total_wins += 1
                 self.competitor1_wins_list += ["*"]
                 self.competitor2_wins_list += [" "]
             else:
-                self.competitor2_wins += 1
+                self.competitor2_total_wins += 1
                 self.competitor2_wins_list += ["*"]
                 self.competitor1_wins_list += [" "]
         else:
             self.competitor1_wins_list += [" "]
             self.competitor2_wins_list += [" "]
+        self.competitor1_wins += [self.competitor1_total_wins]
+        self.competitor2_wins += [self.competitor2_total_wins]
         if len(self.competitor1_guesses) >= self.num_turns:
             self.is_over = True
 
@@ -55,14 +59,17 @@ class Rps(Competition):
         return 0
 
     def get_display(self):
-        display = "Round %3s: %50s %-5s %5s %-50s \n" % ("#", "comment1", "move1", "move2", "comment2" )
+        display = "Round %3s:            %50s %-5s %5s %-50s </span>\n" % \
+                    ("#", "comment1", "move1", "move2", "comment2" )
         display += "="*120 + "\n"
         for round in range(len(self.competitor1_guesses)):
-            display += "Round %3s: %50s    %s%s %s%s    %-50s \n" % \
-                       (round+1, self.competitor1_comments[round], self.competitor1_wins_list[round],
+            display += "Round %3s: %3s to %-3s %50s    %s%s %s%s    %-50s \n" % \
+                       (round+1, self.competitor1_wins[round], self.competitor2_wins[round],
+                        self.competitor1_comments[round], self.competitor1_wins_list[round],
                         self.competitor1_guesses[round], self.competitor2_guesses[round],
                         self.competitor2_wins_list[round], self.competitor2_comments[round])
-        display = "Competitor #1: " + str(self.competitor1_wins) + "  Competitor #2: " + str(self.competitor2_wins) + "\n" + display
+        display = "<span class=header><span class=score>Competitor #1: " + str(self.competitor1_total_wins) \
+                  + "  Competitor #2: " + str(self.competitor2_total_wins) + "</span>\n\n" + display
         return display
 
     def is_move_valid(self, move):
