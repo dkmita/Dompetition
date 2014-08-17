@@ -1,4 +1,9 @@
+import sys
 from competitor import Competitor
+
+class NullWriter(object):
+    def write(self, arg):
+        pass
 
 class Competition(object):
 
@@ -9,12 +14,17 @@ class Competition(object):
         self.competitor2 = competitor2
 
     def compete(self):
+        # dont let competitors print ot stdout
+        oldstdout = sys.stdout
+        sys.stdout = NullWriter()
         while not self.is_over:
             move1, comment1 = self.competitor1.process_and_decide(self.get_competitor1_state())
             move2, comment2 = self.competitor2.process_and_decide(self.get_competitor2_state())
             self.process_moves_first(move1, comment1, move2, comment2)
+        # reenable printing to stdout
+        sys.stdout = oldstdout
         print self.get_display()
-        #return self.get_winner()
+        return self.get_winner()
 
     def process_moves_first(self, move1, comment1, move2, comment2):
         invalid_reason = self.is_move_valid(move1)
