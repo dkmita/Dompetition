@@ -103,10 +103,10 @@ if "file" in form:
         # write file to upload directory with upload_time appended to file name
         fn_without_ending = fn[:fn.index('.')]
         fn_ending = fn[fn.index('.'):]
-        fn_with_upload_time = fn_without_ending + upload_time_string 
-        full_fn = fn_with_upload_time + fn_ending
         now_datetime = datetime.now()
         upload_time_string = now_datetime.strftime("%Y%m%d%H%M%S")
+        fn_with_upload_time = fn_without_ending + upload_time_string 
+        full_fn = fn_with_upload_time + fn_ending
         open('/var/www/html/uploads/' + full_fn, 'wb').write(fileitem.file.read())
         
         # check file using fileChecker.py
