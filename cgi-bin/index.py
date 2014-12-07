@@ -19,7 +19,7 @@ conn = connect(host="localhost",user="root",passwd=mysql_pwd,db="sentience")
 cursor = conn.cursor()
 conn.autocommit(True)
 
-# retrieve environment variables
+#to the site retrieve environment variables
 apple_key = os.environ['APPLE_KEY']
 secret_key = os.environ['SECRET_KEY']
 
@@ -78,7 +78,7 @@ if 'session' in cookie:
                                  email='%(email)s' where id=%(user_id)s; " % locals() )
             else:   
                 # this is a new user so store in db    
-                cursor.execute("insert into user (user_id,username,firstname,lastname,email) values \
+                cursor.execute("insert into user (id,username,firstname,lastname,email) values \
                                  (null,'%(user_name)s','%(first_name)s','%(last_name)s','%(email)s'); " % locals() )
                 cursor.execute("select id from user where username='%(user_name)s'" % locals())
                 user_id, = cursor.fetchone()
@@ -140,27 +140,8 @@ if upload_message:
 
 print "<h1>The Dompetition</h1>"
 # print file upload code
-print """Upload your code: &nbsp&nbsp&nbsp&nbsp<span class=example-click>show example</span><br />
-<table class=example>
-<tr><td><pre>
-class TheRock():
-
-    def __init__(self):
-        # initialize your competitor
-        pass
-
-    def process_and_decide(self, state):
-        opponents_move = state.get_opponents_last_guess()
-        # figure out what you want to do and then
-        # return a (move, comment) tuple
-        return ("R", "Can you smell what The Rock is cookin'?")
-</pre></td></tr></table>
-<script type="text/javascript">
-    $('.example').hide()
-    $('.example-click').on('click',function() {
-        $('.example').toggle();
-    });
-</script>
+print """<table class=uploadtut border=0><tr><td>
+<h3>Upload your code:</h3>
 <form action="/cgi-bin/index.py" method="POST" enctype="multipart/form-data">
 <label for="file">Filename:</label>
 <input type="file" name="file" id="file"><br />
@@ -169,6 +150,10 @@ class TheRock():
 </form>""" % locals()
 if user_name is None:
     print "<script>$('#uploadsubmit').prop('disabled', true);</script>"
+print "</td><td valign=top>"
+print """<h3>Tutorial</h3>
+<a href="/tutorial.html">Follow these three quick steps to get started!</a>
+</td></tr></table>"""
 
 # divider
 print "<br />", "="*80, "<br />"
@@ -237,7 +222,7 @@ for id in sorted(competitor_map.keys()):
 print "</table>"
 print "</td></tr></table>"
 print "Num Rounds:<select name=numrounds>"
-for rounds in ["100","250","1000"]:
+for rounds in ["100","250","1000","2000"]:
     select_str = "selected" if rounds == num_rounds else ""
     print "  <option value=%(rounds)s %(select_str)s>%(rounds)s</option>" % locals()
 print "</select>"

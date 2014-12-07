@@ -1,0 +1,83 @@
+<html><head><title>Dompetition - Tutorial</title>
+<link rel="stylesheet" type="text/css" href="/style.css">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+</head><body>
+
+<table><tr>
+<tr><td colspan=2><a href="/">Home</a></td></tr>
+<tr><td colspan=2>
+<h1>Dompetition - Tutorial</h1>
+
+<h2>Three Steps to Upload Your First Dompetitor</h2>
+</td></tr>
+
+<tr><td width=400em>
+
+<h3>1) Download and Install a Python Interpreter</h3>
+<p>The first step in creating a Dompetitor is to install a Python interpretor -- a program that understands Python and can help you program and debug your code.  Idle is a basic interpreter that comes bundled with a standard Python install.  Download it here:<br /></p>
+<table><tr><td><a href='https://www.python.org/download/releases/2.7.8/'><img src="/images/idle.png" width=100em /></a></td>
+<td><a href='https://www.python.org/download/releases/2.7.8/'>https://www.python.org/download/releases/2.7.8/</a></td></tr></table>
+Once it finishes downloading, follow the necessary steps to install it. 
+
+<p>(Obviously you can use any other interpreter if you have a preference)</p>
+
+<h3>2) Copy the Example Code</h3>
+<p>When you open Idle you should see two windows. One called the "Python Shell" and another for writing a new Python file which is probably labeled "Untitled" if you just installed.  If you don't see the second window, open a new file with File>New or File>New Window. </p>
+
+<p>The Python Shell is an interactive window where you can type python phrases and have them immediately interpretted.  This is a great tool for touching up on your Python syntax or running a quick test. Go ahead and mess around with it for a few minutes. </p>
+
+<p><img src="/images/shell.png" width=400em /></p>
+
+<p> Once you're done playing with the Python shell, open up your other editor window.  Paste in the following code: <span class=example-click>show example</span><br />
+<table class=example>
+<tr><td>
+<pre>
+class TheRock:
+
+    def __init__(self):
+        # initialize your competitor
+        pass
+
+    def process_and_decide(self, state):
+        opponents_move = state.get_opponents_last_guess()
+        # figure out what you want to do and then
+        # return a (move, comment) tuple
+        return ("R", "Can you smell what The Rock is cookin'?")
+</pre></td></tr></table>
+<script type="text/javascript">
+    $('.example').hide()
+    $('.example-click').on('click',function() {
+        $('.example').toggle();
+    });
+</script></p>
+
+<h3>3) Upload Your File</h3>
+
+Go the the <a href="../cgi-bin/index.py">upload page</a> Click the "Choose File" button, find your file, and then click "Submit". Easy.
+
+</td><td width=300em valign=top>
+
+<h3>Python</h3>
+<p>Currently Dompetition is written in Python and if you want to participate you need to write code in Python -- but if you don't know Python, don't worry.  Python  could be <b><i>the easiest</i></b> language for those new to programming and its quick to pick up for those who already know how to program.</p>
+<p>According to "PEP 20 (The Zen of Python)" the core philosophy of Python includes aphorisms such as:
+    <ul><li>Beautiful is better than ugly</li>
+        <li>Explicit is better than implicit</li>
+        <li>Simple is better than complex</li>
+        <li>Complex is better than complicated</li>
+        <li>Readability counts</li>
+    </ul>
+</p> 
+<p>If you're worried that your Python isn't up to par, try out our favorite free online tutorial:
+&nbsp&nbsp&nbsp<a href='http://www.codecademy.com/en/tracks/python'>http://www.codecademy.com/en/tracks/python</a>
+</p>
+
+
+
+
+
+
+
+
+</td></tr></table>
+
+</body></html>
