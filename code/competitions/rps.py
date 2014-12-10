@@ -14,7 +14,7 @@ class Rps(Competition):
     competitor1_comments = []
     competitor2_comments = []
 
-    def __init__(self, competitor1, competitor2, num_turns):
+    def __init__(self, competitor1, competitor2, num_turns, num_rounds):
         self.num_turns = num_turns
 
         self.competitor1_state = RpsCompetitorState()

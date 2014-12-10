@@ -27,18 +27,17 @@ print """    <script jquery>
         });
     </script>"""
 
-user_name, user_id = common.facebook_authentication( cursor, cookie )   
+user_name, user_id = common.facebook_authentication(cursor, cookie)   
 
-common.handle_upload( form )
+common.handle_upload(form, cursor, user_id)
 
 print "<h1>The Dompetition</h1>"
 
-common.print_top_table( user_name )
 common.print_divider()
 
 # Get competitor details
 
-common.print_competition_tabs( form, cursor, user_id )
+common.print_competition_tabs(form, cursor, user_id, user_name)
 
 
 common.print_html_end()

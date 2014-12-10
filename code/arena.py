@@ -2,7 +2,7 @@ import sys
 
 if __name__ == '__main__':
     arena, competition_module, competition_name, competitor1_module, competitor1_class_name, \
-        competitor2_module, competitor2_class_name, num_rounds = sys.argv
+        competitor2_module, competitor2_class_name, num_turns, num_rounds = sys.argv
 
     try:
         competition_module = __import__(competition_module)
@@ -22,5 +22,5 @@ if __name__ == '__main__':
     except ImportError:
         print "Error finding competitor:",competitor1_class_name
 
-    rps = competition_class(comp1_class(), comp2_class(), int(num_rounds))
-    rps.compete()
+    comp = competition_class(comp1_class(), comp2_class(), int(num_turns), int(num_rounds))
+    comp.compete()

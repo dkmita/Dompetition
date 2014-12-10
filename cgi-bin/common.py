@@ -31,7 +31,7 @@ def setup_cgi_form():
     return cgi.FieldStorage()
 
 
-def facebook_authentication( cursor, cookie ):
+def facebook_authentication(cursor, cookie):
     import facebookLogin, facebook
     user_name = None
     user_id=0
@@ -77,7 +77,7 @@ def facebook_authentication( cursor, cookie ):
         print "Welcome, ", first_name, last_name, "(" + user_name + ")"
     return user_name, user_id 
 
-def handle_upload( form ):
+def handle_upload( form, cursor, user_id ):
     # handle file upload
     upload_message = ""
     fileitem = None
@@ -90,6 +90,8 @@ def handle_upload( form ):
             upload_message = 'The file needs to be .py or .pyc type'
         else:
             # write file to upload directory with upload_time appended to file name
+            from datetime import datetime
+            from subprocess import Popen, PIPE
             fn_without_ending = fn[:fn.index('.')]
             fn_ending = fn[fn.index('.'):]
             now_datetime = datetime.now()
@@ -138,29 +140,21 @@ def print_html_header():
         """
 
 
-def print_tutorial_html():
-    print "  <h3>Tutorial</h3>"
-    print "  <a href='/tutorial.html'>Follow these three quick steps to get started!</a>"
-
-
-def print_upload_html( user_name ):
-    print "  <h3>Upload your code:</h3>"
+def print_top_table(user_name, comp_id, comp_name):
+    print "<table class=toptable border=0><tr><td>"
+    print "  <h3>Upload your %(comp_name)s code:</h3>" % locals()
     print "  <form action='/cgi-bin/index.py' method=POST enctype='multipart/form-data'>"
     print "    <label for=file>Filename:</label>"
     print "    <input type=file name=file id=file><br />"
-    print "    <input type=hidden name=competition value=1>"
+    print "    <input type=hidden name=competition value=%(comp_id)s>" % locals()
     print "    <input id=uploadsubmit type=submit name=submit value=Submit><br>"
     print "  </form>"
     if user_name is None:
         print "  <script>$('#uploadsubmit').prop('disabled', true);</script>"
-       
-
-def print_top_table( user_name ):
-    print "<table class=toptable border=0><tr><td>"
-    print_upload_html( user_name ) 
     print "</td><td valign=top>"
-    print_tutorial_html()
-    print "</td></tr></table>"
+    print "  <h3>Tutorial</h3>"
+    print "  <a href='/tutorial.html'>Follow these three quick steps to get started!</a>"
+    print "</td></tr></table><br />"
 
 
 def print_divider():
@@ -206,7 +200,7 @@ def get_competitor_map( cursor, comp_id ):
     return competitor_map
 
 
-def print_competition_table( competitor_map, user_id, cr1_id, cr2_id, num_rounds, comp_id ):
+def print_competition_table(competitor_map, user_id, cr1_id, cr2_id, num_turns, num_rounds, comp_id):
     print "    <form><table><tr><td>"
     print "      <table border=1><tr><th></th><th>Competitor</th><th>Creator</th></tr>"
     for id in sorted(competitor_map.keys()):
@@ -234,8 +228,13 @@ def print_competition_table( competitor_map, user_id, cr1_id, cr2_id, num_rounds
         print "        </tr>"
     print "      </table>"
     print "    </td></tr></table>"
+    print "    Num Turns:<select name=numturns>"
+    for turns in ["10","100","250","1000","2000"]:
+        select_str = "selected" if turns == num_turns else ""
+        print "      <option value=%(turns)s %(select_str)s>%(turns)s</option>" % locals()
+    print "      </select>"
     print "    Num Rounds:<select name=numrounds>"
-    for rounds in ["100","250","1000","2000"]:
+    for rounds in ["1","5","10","100"]:
         select_str = "selected" if rounds == num_rounds else ""
         print "      <option value=%(rounds)s %(select_str)s>%(rounds)s</option>" % locals()
     print "      </select>"
@@ -244,7 +243,7 @@ def print_competition_table( competitor_map, user_id, cr1_id, cr2_id, num_rounds
     print "    </form>"
 
 
-def print_competition_results( competitor_map, cr1_id, cr2_id, num_rounds ):
+def print_competition_results(competitor_map, cr1_id, cr2_id, num_turns, num_rounds):
     from subprocess import Popen, PIPE
     cr1_filename, cr1_classname, cr1_time, cn1_filename, cn1_classname, user, u_id = competitor_map[cr1_id]
     cr2_filename, cr2_classname, cr2_time, cn2_filename, cn2_classname, user, u_id = competitor_map[cr2_id]
@@ -260,7 +259,7 @@ def print_competition_results( competitor_map, cr1_id, cr2_id, num_rounds ):
     print "<pre>"
     arena = "/var/www/code/arena.py"
     command = ["python",arena, cn1_filename, cn1_classname, cr1_filename,cr1_classname, \
-              cr2_filename, cr2_classname, num_rounds]
+              cr2_filename, cr2_classname, num_turns, num_rounds]
     process = Popen( command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     
@@ -274,18 +273,20 @@ def print_html_end():
         </html>"""
 
 
-def print_competition_tabs( form, cursor, user_id ):
+def print_competition_tabs( form, cursor, user_id, user_name ):
     
     comp_id = int(form.getvalue("competition")) if form.getvalue("competition") else 1
     cr1_id = int(form.getvalue("comp1")) if form.getvalue("comp1") else None
     cr2_id = int(form.getvalue("comp2")) if form.getvalue("comp2") else None
-    num_rounds = form.getvalue("numrounds","100")
+    num_turns = form.getvalue("numturns","100")
+    num_rounds = form.getvalue("numrounds","1")
     
     competitions_list = []
     cursor.execute("""SELECT id, name
                       FROM competition""")
     for id, name in cursor.fetchall():
         competitions_list += [(id, name)]
+    
     
     print "<div class=tabs>"
     print "  <ul class=tab-links>"
@@ -298,10 +299,11 @@ def print_competition_tabs( form, cursor, user_id ):
     for id, name in competitions_list:
         classdetails = "class='tab active'" if id == comp_id else "class='tab'"
         print "    <div id=tab%(id)s %(classdetails)s>" % locals()
-        competitor_map = get_competitor_map( cursor, id )
-        print_competition_table( competitor_map, user_id, cr1_id, cr2_id, num_rounds, id )
+        print_top_table(user_name, id, name)
+        competitor_map = get_competitor_map(cursor, id)
+        print_competition_table( competitor_map, user_id, cr1_id, cr2_id, num_turns, num_rounds, id )
         if cr1_id and cr2_id and comp_id == id:
-            print_competition_results( competitor_map, cr1_id, cr2_id, num_rounds )
+            print_competition_results( competitor_map, cr1_id, cr2_id, num_turns, num_rounds )
         print "    </div>"
     print "  </div>"
     print "</div>"
