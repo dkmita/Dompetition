@@ -51,19 +51,25 @@ class Rps(Competition):
         if len(self.competitor1_guesses) >= self.num_turns:
             self.is_over = True
 
-    def get_winner(self):
-        if self.competitor1_wins > self.competitor2_wins:
-            return 1
-        elif self.competitor2_wins > self.competitor1_wins:
-            return 2
-        return 0
+
+    def get_config(self):
+        return "%07d" % self.num_turns
+
+
+    def get_score1(self):
+        return self.competitor1_total_wins
+
+
+    def get_score2(self):
+        return self.competitor2_total_wins
+
 
     def get_display(self):
-        display = "Round %3s:            %50s %-5s %5s %-50s </span>\n" % \
+        display = "Turn %4s:              %50s %-5s %5s %-50s </span>\n" % \
                     ("#", "comment1", "move1", "move2", "comment2" )
         display += "="*120 + "\n"
         for round in range(len(self.competitor1_guesses)):
-            display += "Round %3s: %3s to %-3s %50s    %s%s %s%s    %-50s \n" % \
+            display += "Turn %4s: %4s to %-4s %50s    %s%s %s%s    %-50s \n" % \
                        (round+1, self.competitor1_wins[round], self.competitor2_wins[round],
                         self.competitor1_comments[round], self.competitor1_wins_list[round],
                         self.competitor1_guesses[round], self.competitor2_guesses[round],

@@ -58,19 +58,28 @@ def facebook_authentication(cursor, cookie):
                 last_name = profile["last_name"]
                 user_name = first_name[0].lower()+last_name.lower() 
                 email = profile["email"]
-                cursor.execute("select id from user where username='%(user_name)s'" % locals())
+                cursor.execute("SELECT id FROM user WHERE username='%(user_name)s'" % locals())
                 if cursor.rowcount:
                     # this is an old user so try to update data
                     user_id, = cursor.fetchone()
-                    cursor.execute("update user set firstname='%(first_name)s', lastname='%(last_name)s', \
-                                     email='%(email)s' where id=%(user_id)s; " % locals() )
+                    cursor.execute( """
+                        UPDATE user 
+                        SET firstname='%(first_name)s', lastname='%(last_name)s', 
+                            email='%(email)s' where id=%(user_id)s """ % locals() )
                 else:   
                     # this is a new user so store in db    
-                    cursor.execute("insert into user (id,username,firstname,lastname,email) values \
-                                     (null,'%(user_name)s','%(first_name)s','%(last_name)s','%(email)s'); " % locals() )
-                    cursor.execute("select id from user where username='%(user_name)s'" % locals())
+                    cursor.execute( """
+                        INSERT INTO user 
+                            (id,username,firstname,lastname,email) 
+                        VALUES
+                            (null,'%(user_name)s','%(first_name)s','%(last_name)s','%(email)s')
+                        """ % locals() )
+                    cursor.execute("SELECT id FROM user WHERE username='%(user_name)s'" % locals())
                     user_id, = cursor.fetchone()
-                cursor.execute("insert into session (id, user_id) values (%(session_id)s,%(user_id)s )" % locals() ) 
+                cursor.execute( """
+                    INSERT INTO session (id, user_id) 
+                    VALUES (%(session_id)s,%(user_id)s )
+                    """ % locals() ) 
     if user_name is None:
         print facebookLogin.facebookLoginHtml % locals()
     else:
@@ -109,10 +118,11 @@ def handle_upload( form, cursor, user_id ):
                 upload_message = 'The file "' + fn + '" was uploaded with class(es): '
                 outputlines = stdout.splitlines()
                 for class_name in outputlines[0].split(' '):
-                    mysql_datetime_str = now_datetime.strftime("%Y-%m-%d %H:%M%S")
-                    cursor.execute("""insert into competitor values (null,%(user_id)s,
-                                    %(competition)s,'%(fn_without_ending)s',
-                                    '%(class_name)s','%(mysql_datetime_str)s')""" %locals())
+                    mysql_datetime_str = now_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                    cursor.execute("""
+                        INSERT INTO competitor 
+                        VALUES (null,%(user_id)s,%(competition)s,'%(fn_without_ending)s',
+                                '%(class_name)s','%(mysql_datetime_str)s')""" %locals())
                     upload_message += class_name + " "
                 if len(outputlines) > 1:
                     upload_message += "<br />" + outputlines[1]
@@ -131,34 +141,50 @@ def handle_upload( form, cursor, user_id ):
 
 def print_html_header():
     print """
-        <!DOCTYPE html>
-        <html>
-        <head><link rel="stylesheet" type="text/css" href="/style.css">
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-        </head>
-        <body>
-        """
+<!DOCTYPE html>
+<html>
+<head><link rel="stylesheet" type="text/css" href="/style.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+</head>
+<body>"""
+
+def print_tab_jquery():
+    print """  <script jquery>
+    jQuery(document).ready(function() {
+        jQuery('.tabs .tab-links a').on('click', function(e)  {
+            var currentAttrValue = jQuery(this).attr('href');
+     
+            // Show/Hide Tabs
+            jQuery('.tabs ' + currentAttrValue).show().siblings().hide();
+     
+            // Change/remove current tab to active
+            jQuery(this).parent('li').addClass('active').siblings().removeClass('active');
+     
+            e.preventDefault();
+        });
+    });
+  </script>"""
 
 
 def print_top_table(user_name, comp_id, comp_name):
-    print "<table class=toptable border=0><tr><td>"
-    print "  <h3>Upload your %(comp_name)s code:</h3>" % locals()
-    print "  <form action='/cgi-bin/index.py' method=POST enctype='multipart/form-data'>"
-    print "    <label for=file>Filename:</label>"
-    print "    <input type=file name=file id=file><br />"
-    print "    <input type=hidden name=competition value=%(comp_id)s>" % locals()
-    print "    <input id=uploadsubmit type=submit name=submit value=Submit><br>"
-    print "  </form>"
+    print "    <table class=toptable border=0><tr><td>"
+    print "      <h3>Upload your %(comp_name)s code:</h3>" % locals()
+    print "      <form action='/cgi-bin/index.py' method=POST enctype='multipart/form-data'>"
+    print "        <label for=file>Filename:</label>"
+    print "        <input type=file name=file id=file><br />"
+    print "        <input type=hidden name=competition value=%(comp_id)s>" % locals()
+    print "        <input id=uploadsubmit type=submit name=submit value=Submit><br>"
+    print "      </form>"
     if user_name is None:
-        print "  <script>$('#uploadsubmit').prop('disabled', true);</script>"
-    print "</td><td valign=top>"
-    print "  <h3>Tutorial</h3>"
-    print "  <a href='/tutorial.html'>Follow these three quick steps to get started!</a>"
-    print "</td></tr></table><br />"
+        print "      <script>$('#uploadsubmit').prop('disabled', true);</script>"
+    print "    </td><td valign=top>"
+    print "      <h3>Tutorial</h3>"
+    print "      <a href='/tutorial.html'>Follow these three quick steps to get started!</a>"
+    print "    </td></tr></table><br />\n"
 
 
 def print_divider():
-    print "<br />", "="*80, "<br />"
+    print "="*80, "<br />"
 
 
 def get_competitor_map( cursor, comp_id ):
@@ -169,8 +195,6 @@ def get_competitor_map( cursor, comp_id ):
             cr.filename,
             cr.classname,
             cr.upload_time,
-            cn.filename,
-            cn.classname,
             u.username,
             u.id
         FROM competitor cr
@@ -193,18 +217,18 @@ def get_competitor_map( cursor, comp_id ):
          """ % locals() )
 
     competitor_map = {}
-    for cr_id, cr_fn, cr_class, cr_time, cn_fn, cn_class, u_user, u_id in cursor.fetchall():
+    for cr_id, cr_fn, cr_class, cr_time, u_user, u_id in cursor.fetchall():
         time_str = cr_time.strftime("%Y%m%d%H%M%S")
-        competitor_map[cr_id] = (cr_fn, cr_class, time_str, cn_fn, cn_class, u_user, u_id)
+        competitor_map[cr_id] = (cr_fn, cr_class, time_str, u_user, u_id)
 
     return competitor_map
 
 
-def print_competition_table(competitor_map, user_id, cr1_id, cr2_id, num_turns, num_rounds, comp_id):
+def print_competition_table(competitor_map, user_id, cr1_id, cr2_id, num_turns, num_rounds, cn_id):
     print "    <form><table><tr><td>"
     print "      <table border=1><tr><th></th><th>Competitor</th><th>Creator</th></tr>"
     for id in sorted(competitor_map.keys()):
-        fn, classname, upload_time, cnfn, cncn, username,u_id = competitor_map[id]
+        fn, classname, upload_time, username,u_id = competitor_map[id]
         rowclass = "" if int(u_id) != int(user_id) else "class='green'"
         checked = ""
         if id == cr1_id:
@@ -217,7 +241,7 @@ def print_competition_table(competitor_map, user_id, cr1_id, cr2_id, num_turns, 
     print "      </table></td>"
     print "    <td><table border=1><tr><th>Creator</th><th>Competitor</th><th></th></tr>"
     for id in sorted(competitor_map.keys()):
-        fn, classname, upload_time, cnfn, cncn, username, u_id = competitor_map[id]
+        fn, classname, upload_time, username, u_id = competitor_map[id]
         checked = ""
         if id == cr2_id:
             checked = "checked"
@@ -238,34 +262,98 @@ def print_competition_table(competitor_map, user_id, cr1_id, cr2_id, num_turns, 
         select_str = "selected" if rounds == num_rounds else ""
         print "      <option value=%(rounds)s %(select_str)s>%(rounds)s</option>" % locals()
     print "      </select>"
-    print "      <input type=hidden name=competition value=%(comp_id)s>" % locals()
+    print "      <input type=hidden name=competition value=%(cn_id)s>" % locals()
     print "      <input type=submit value='Compete'>"
     print "    </form>"
 
 
-def print_competition_results(competitor_map, cr1_id, cr2_id, num_turns, num_rounds):
+def print_competition_results(competitor_map, cn_id, cr1_id, cr2_id, num_turns, num_rounds, cursor):
+    from datetime import datetime
     from subprocess import Popen, PIPE
-    cr1_filename, cr1_classname, cr1_time, cn1_filename, cn1_classname, user, u_id = competitor_map[cr1_id]
-    cr2_filename, cr2_classname, cr2_time, cn2_filename, cn2_classname, user, u_id = competitor_map[cr2_id]
+    cr1_filename, cr1_classname, cr1_time, user, u_id = competitor_map[cr1_id]
+    cr2_filename, cr2_classname, cr2_time, user, u_id = competitor_map[cr2_id]
     cr1_filename = cr1_filename + cr1_time
     cr2_filename = cr2_filename + cr2_time
 
-    if cn1_filename != cn2_filename or cn1_classname != cn2_classname:
-        print "Competitors",cr1_classname,cr2_classname,"are not for the same competition"
-        print "</body></html>"
-        sys.exit()
-        
-    print_divider()
-    print "<pre>"
+    cursor.execute("SELECT classname, filename FROM competition WHERE id = %(cn_id)s" % locals())
+    cn_classname, cn_filename = cursor.fetchone()
+   
+    #get config
     arena = "/var/www/code/arena.py"
-    command = ["python",arena, cn1_filename, cn1_classname, cr1_filename,cr1_classname, \
-              cr2_filename, cr2_classname, num_turns, num_rounds]
+    command = ["python", arena, cn_filename, cn_classname, \
+               cr1_filename,cr1_classname, cr2_filename, cr2_classname, \
+               num_turns, num_rounds, "config"]
     process = Popen( command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
-    
+    config = stdout
+   
+    cursor.execute( """
+        SELECT r.id
+        FROM result r
+        JOIN result_stats s1
+            ON r.id = s1.result_id 
+            AND s1.competitor_num = 1
+        JOIN result_stats s2
+            ON r.id = s2.result_id 
+            AND s2.competitor_num = 2
+        WHERE ( (
+                s1.competitor_id = %(cr1_id)s 
+                AND s2.competitor_id = %(cr2_id)s 
+                AND r.config = %(config)s)
+            OR (
+                s1.competitor_id = %(cr2_id)s 
+                AND s2.competitor_id = %(cr1_id)s 
+                AND r.config = %(config)s) ) 
+        """ % locals() )
+    result = cursor.fetchone()
+    if result:
+        result_id, = result
+    else: 
+        now_datetime = datetime.now()
+        mysql_datetime_str = now_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute( """
+            INSERT IGNORE INTO result
+                (competition_id, config, timestamp)
+            VALUES (%(cn_id)s, %(config)s, '%(mysql_datetime_str)s')""" % locals() )
+        cursor.execute( """
+            SELECT id 
+            FROM result 
+            WHERE timestamp='%(mysql_datetime_str)s'""" % locals() )
+        result_id, = cursor.fetchone()
+ 
+    #run in arena
+    print_divider()
+    print "<pre>"
+    command = ["python", arena, cn_filename, cn_classname, \
+               cr1_filename,cr1_classname, cr2_filename, cr2_classname, \
+               num_turns, num_rounds, "compete"]
+    process = Popen( command, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = process.communicate()
+   
+    #print outcome
     print stderr, "</br>"
-    print stdout, "</br>"
+    lines = stdout.split("\n") 
+    for line in lines[1:]:
+        print line
     print "</pre>"
+   
+    #put results in database 
+    score1, score2 = lines[0].split()
+    winner1 = 0
+    winner2 = 0
+    if int(score1) > int(score2):
+        winner1 = 1
+        winner2 = -1
+    elif int(score2) > int(score1):
+        winner1 = -1
+        winner2 = 1
+    config = int(config)
+    
+    cursor.execute( """
+        INSERT IGNORE INTO result_stats
+            (result_id, competitor_num, competitor_id, score, winner)
+        VALUES (%(result_id)s, 1, %(cr1_id)s, %(score1)s, %(winner1)s),
+            (%(result_id)s, 2, %(cr2_id)s, %(score2)s, %(winner2)s)""" % locals() )
 
 
 def print_html_end():
@@ -303,8 +391,8 @@ def print_competition_tabs( form, cursor, user_id, user_name ):
         competitor_map = get_competitor_map(cursor, id)
         print_competition_table( competitor_map, user_id, cr1_id, cr2_id, num_turns, num_rounds, id )
         if cr1_id and cr2_id and comp_id == id:
-            print_competition_results( competitor_map, cr1_id, cr2_id, num_turns, num_rounds )
-        print "    </div>"
+            print_competition_results( competitor_map, id, cr1_id, cr2_id, num_turns, num_rounds, cursor )
+        print "    </div>\n"
     print "  </div>"
     print "</div>"
 

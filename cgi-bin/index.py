@@ -11,33 +11,13 @@ form   = common.setup_cgi_form()
 
 
 common.print_html_header()
-print """    <script jquery>
-        jQuery(document).ready(function() {
-            jQuery('.tabs .tab-links a').on('click', function(e)  {
-                var currentAttrValue = jQuery(this).attr('href');
-         
-                // Show/Hide Tabs
-                jQuery('.tabs ' + currentAttrValue).show().siblings().hide();
-         
-                // Change/remove current tab to active
-                jQuery(this).parent('li').addClass('active').siblings().removeClass('active');
-         
-                e.preventDefault();
-            });
-        });
-    </script>"""
+common.print_tab_jquery()
 
 user_name, user_id = common.facebook_authentication(cursor, cookie)   
-
 common.handle_upload(form, cursor, user_id)
 
 print "<h1>The Dompetition</h1>"
 
 common.print_divider()
-
-# Get competitor details
-
 common.print_competition_tabs(form, cursor, user_id, user_name)
-
-
 common.print_html_end()

@@ -77,14 +77,23 @@ class War(Competition):
         self.setup_next_turn()
 
 
-    def get_winner(self):
-        if self.internal_competitor1.round_win_count > self.internal_competitor2.round_win_count:
-            return 1
-        if self.internal_competitor2.round_win_count > self.internal_competitor1.round_win_count:
-            return 2
-        return 0
+    def get_config(self):
+        import math
+        turns_power = int(math.log10(self.num_turns))
+        turns_mult = self.num_turns / 10**(turns_power-1)
+        rounds_power = int(math.log10(self.num_rounds))
+        rounds_mult = self.num_rounds / 10**(rounds_power-1)
+        return int(10000 * turns_mult + 1000 * turns_power + 10 * rounds_mult +  rounds_power)
 
 
+    def get_score1(self):
+        return self.internal_competitor1.round_win_count
+
+    
+    def get_score2(self):
+        return self.internal_competitor2.round_win_count
+
+    
     def get_display(self):
         cr1 = self.internal_competitor1
         cr2 = self.internal_competitor2
@@ -93,20 +102,22 @@ class War(Competition):
                   self.competitor1.__class__.__name__ + ": " + str(cr1.round_win_count) + "  " + \
                   self.competitor2.__class__.__name__ + ": " + str(cr2.round_win_count) + \
                   "</span>\n\n"
-        display += "Round %3s:            %50s %5s wt %-5s %-50s </span>\n" % \
+        display += "Round %3s:                %50s %5s  wt  %-5s %-50s </span>\n" % \
                     ("#", "comment1", "move1", "move2", "comment2" )
         for round_index in range(self.num_rounds):
             display += "="*120 + "\n"
             for turn_index in range(self.num_turns):
-                display += " Turn %3s: %3s to %-3s %50s  %3s %s%02d%s %-3s  %-50s \n" % \
+                display += " Turn %3s: %5s to %-5s %50s  %4s %s%03d%s %-4s  %-50s \n" % \
                            (turn_index+1, cr1.turn_cum_scores[move_index], cr2.turn_cum_scores[move_index],
                             cr1.comments[move_index], cr1.moves[move_index], cr1.turn_wins_texts[move_index], 
                             self.all_weights[move_index], cr2.turn_wins_texts[move_index], cr2.moves[move_index],
                             cr2.comments[move_index])
                 move_index += 1
-            display += "Round %3s: %3s to %-3s \n" % (round_index, cr1.round_cum_counts[round_index],
+            display += "="*120 + "\n"
+            display += "  Round %3s: %5s to %-5s \n" % (round_index+1, cr1.round_cum_counts[round_index],
                                                    cr2.round_cum_counts[round_index])
         return display
+
 
     def is_move_valid(self, move):
         try:
@@ -114,6 +125,7 @@ class War(Competition):
                 return str(move) + " not a valid move. Must be between 1 and " + str(self.num_turns)
         except:
             return str(move) + " not a valid move. Must be an integer"
+
     
     def is_comment_valid(self, comment):
         return None
