@@ -57,7 +57,10 @@ def facebook_authentication(cursor, cookie):
                 first_name = profile["first_name"]
                 last_name = profile["last_name"]
                 user_name = first_name[0].lower()+last_name.lower() 
-                email = profile["email"]
+                if "email" in profile:
+                    email = profile["email"]
+                else:
+                    email = "none"
                 cursor.execute("SELECT id FROM user WHERE username='%(user_name)s'" % locals())
                 if cursor.rowcount:
                     # this is an old user so try to update data
@@ -280,7 +283,7 @@ def print_competition_results(competitor_map, cn_id, cr1_id, cr2_id, num_turns, 
    
     #get config
     arena = "/var/www/code/arena.py"
-    command = ["python", arena, cn_filename, cn_classname, \
+    command = ["python", arena, "none", cn_filename, cn_classname, \
                cr1_filename,cr1_classname, cr2_filename, cr2_classname, \
                num_turns, num_rounds, "config"]
     process = Popen( command, stdout=PIPE, stderr=PIPE)
@@ -296,14 +299,14 @@ def print_competition_results(competitor_map, cn_id, cr1_id, cr2_id, num_turns, 
         JOIN result_stats s2
             ON r.id = s2.result_id 
             AND s2.competitor_num = 2
-        WHERE ( (
+        WHERE (
                 s1.competitor_id = %(cr1_id)s 
                 AND s2.competitor_id = %(cr2_id)s 
-                AND r.config = %(config)s)
+                AND r.config = %(config)s )
             OR (
                 s1.competitor_id = %(cr2_id)s 
                 AND s2.competitor_id = %(cr1_id)s 
-                AND r.config = %(config)s) ) 
+                AND r.config = %(config)s )
         """ % locals() )
     result = cursor.fetchone()
     if result:
@@ -324,9 +327,11 @@ def print_competition_results(competitor_map, cn_id, cr1_id, cr2_id, num_turns, 
     #run in arena
     print_divider()
     print "<pre>"
-    command = ["python", arena, cn_filename, cn_classname, \
+    result_filename = "/var/www/results/" + str(result_id)
+    command = ["python", arena, result_filename, cn_filename, cn_classname, \
                cr1_filename,cr1_classname, cr2_filename, cr2_classname, \
                num_turns, num_rounds, "compete"]
+    print " ".join(command)
     process = Popen( command, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
    
@@ -336,7 +341,7 @@ def print_competition_results(competitor_map, cn_id, cr1_id, cr2_id, num_turns, 
     for line in lines[1:]:
         print line
     print "</pre>"
-   
+
     #put results in database 
     score1, score2 = lines[0].split()
     winner1 = 0

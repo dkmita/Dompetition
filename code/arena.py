@@ -1,7 +1,7 @@
 import sys
 
 if __name__ == '__main__':
-    arena, competition_module, competition_name, \
+    arena, result_filename, competition_module, competition_name, \
         competitor1_module, competitor1_class_name, \
         competitor2_module, competitor2_class_name, \
         num_turns, num_rounds, mode = sys.argv
@@ -24,7 +24,8 @@ if __name__ == '__main__':
     except ImportError:
         print "Error finding competitor:",competitor1_class_name
 
-    comp = competition_class(comp1_class(), comp2_class(), int(num_turns), int(num_rounds))
+    comp = competition_class( result_filename, comp1_class(), comp2_class(), 
+                              int(num_turns), int(num_rounds) )
     if mode == "compete":
         comp.compete()
     elif mode == "config":

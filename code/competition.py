@@ -6,24 +6,34 @@ class NullWriter(object):
     def write(self, arg):
         pass
 
+
+class ResultWriter(object):
+
+    def __init__(self, filename):
+        self.file = open(filename, "w")
+        self.file.write("testing dom")
+
+
 class Competition(object):
 
     is_over = False
+    result_writer = None
 
-
-    def __init__(self, competitor1, competitor2):
+    def __init__(self, result_filename, competitor1, competitor2):
         self.competitor1 = competitor1
         self.competitor2 = competitor2
-
+        self.result_filename = result_filename
 
     def compete(self):
+        self.result_writer = ResultWriter(self.result_filename)
         # dont let competitors print ot stdout
         oldstdout = sys.stdout
         sys.stdout = NullWriter()
         while not self.is_over:
             move1, comment1 = self.competitor1.process_and_decide(self.get_competitor1_state())
             move2, comment2 = self.competitor2.process_and_decide(self.get_competitor2_state())
-            self.process_moves_first(move1, comment1, move2, comment2)
+            self.check_moves(move1, comment1, move2, comment2)
+            self.process_moves(move1, comment1, move2, comment2)
         # reenable printing to stdout
         sys.stdout = oldstdout
 
@@ -35,7 +45,7 @@ class Competition(object):
         return score1, score2
 
 
-    def process_moves_first(self, move1, comment1, move2, comment2):
+    def check_moves(self, move1, comment1, move2, comment2):
         invalid_reason = self.is_move_valid(move1)
         if invalid_reason:
             raise Exception(invalid_reason)
@@ -48,7 +58,6 @@ class Competition(object):
         invalid_reason = self.is_comment_valid(comment2)
         if invalid_reason:
             raise Exception(invalid_reason)
-        self.process_moves(move1, comment1, move2, comment2)
 
 
     def is_move_valid(self,move):
@@ -85,3 +94,8 @@ class Competition(object):
     
     def get_score2(self):
         raise NotImplementedError( "Need to implement get_score2(self)" )
+
+
+            
+            
+                    
